@@ -375,6 +375,126 @@ def generate_dashboard(history: dict):
             font-size: 11px;
         }}
 
+        /* ---- Comparison panel ---- */
+        .compare-panel {{
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 10px;
+            margin-bottom: 14px;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }}
+
+        .compare-header {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-subtle);
+            flex-wrap: wrap;
+        }}
+
+        .compare-header h2 {{
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            margin-right: auto;
+        }}
+
+        .compare-header input[type="date"] {{
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 11px;
+            padding: 4px 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-emphasis);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+            color-scheme: dark;
+        }}
+
+        [data-theme="light"] .compare-header input[type="date"] {{
+            color-scheme: light;
+        }}
+
+        @media (prefers-color-scheme: light) {{
+            [data-theme="system"] .compare-header input[type="date"] {{
+                color-scheme: light;
+            }}
+        }}
+
+        .compare-header input[type="date"]:focus {{
+            outline: 1px solid var(--accent-blue);
+        }}
+
+        .compare-hint {{
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-left: auto;
+        }}
+
+        .compare-header label {{
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }}
+
+        .compare-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }}
+
+        .compare-table th {{
+            text-align: left;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--border-subtle);
+        }}
+
+        .compare-table td {{
+            padding: 4px 8px;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Consolas', monospace;
+            border-bottom: 1px solid var(--border-subtle);
+        }}
+
+        .compare-table td:first-child {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text-secondary);
+        }}
+
+        .compare-table tr:last-child td {{
+            border-bottom: none;
+        }}
+
+        .delta-positive {{
+            color: var(--accent-green);
+        }}
+
+        .delta-negative {{
+            color: var(--accent-red);
+        }}
+
+        .delta-neutral {{
+            color: var(--text-muted);
+        }}
+
+        .compare-empty {{
+            color: var(--text-muted);
+            font-size: 11px;
+            padding: 10px 0;
+            text-align: center;
+        }}
+
         footer {{
             text-align: center;
             padding: 10px 0;
@@ -433,6 +553,20 @@ def generate_dashboard(history: dict):
             <div class="card">
                 <span class="label"><span class="status-dot"></span>Reactions (daily)</span>
                 <span class="value">{activity.get('channel_reactions', activity.get('reactions_added', 0)):,}</span>
+            </div>
+        </div>
+
+        <div class="compare-panel">
+            <div class="compare-header">
+                <h2>Compare Snapshots</h2>
+                <label for="compareFrom">From</label>
+                <input type="date" id="compareFrom">
+                <label for="compareTo">To</label>
+                <input type="date" id="compareTo">
+                <span class="compare-hint" id="compareHint">Selects nearest available snapshot</span>
+            </div>
+            <div id="compareBody">
+                <div class="compare-empty">Select two different dates to compare.</div>
             </div>
         </div>
 
@@ -715,6 +849,127 @@ def generate_dashboard(history: dict):
 
     /* Initial render */
     rebuildAllCharts();
+
+    /* ---- Comparison panel ---- */
+    const COMPARE_METRICS = [
+        {{ label: 'Active Members', path: 'membership.active' }},
+        {{ label: 'Total Registered', path: 'membership.total_registered' }},
+        {{ label: 'Deactivated', path: 'membership.deactivated' }},
+        {{ label: 'Full Members', path: 'membership.full_members' }},
+        {{ label: 'Admins', path: 'membership.admins' }},
+        {{ label: 'Bots', path: 'membership.bots' }},
+        {{ label: 'Active Channels', path: 'channels.active_channels' }},
+        {{ label: 'Archived Channels', path: 'channels.archived_channels' }},
+        {{ label: 'Messages Posted', path: 'activity.channel_messages_posted' }},
+        {{ label: 'Reactions', path: 'activity.channel_reactions' }},
+        {{ label: 'Unique Viewers', path: 'activity.channel_unique_viewers' }},
+        {{ label: 'Unique Posters', path: 'activity.channel_unique_posters' }},
+    ];
+
+    /* All snapshot dates sorted chronologically */
+    const SNAPSHOT_DATES = DATA.map(function(s) {{ return s.date; }}).sort();
+
+    function findNearestSnapshot(dateStr) {{
+        /* Find the snapshot with the closest date to the given date string */
+        if (!dateStr || SNAPSHOT_DATES.length === 0) return null;
+        let target = new Date(dateStr).getTime();
+        let best = null;
+        let bestDist = Infinity;
+        for (let i = 0; i < DATA.length; i++) {{
+            let dist = Math.abs(new Date(DATA[i].date).getTime() - target);
+            if (dist < bestDist) {{
+                bestDist = dist;
+                best = i;
+            }}
+        }}
+        return best;
+    }}
+
+    function initCompareDates() {{
+        let fromInput = document.getElementById('compareFrom');
+        let toInput = document.getElementById('compareTo');
+
+        if (SNAPSHOT_DATES.length === 0) return;
+
+        let minDate = SNAPSHOT_DATES[0];
+        let maxDate = SNAPSHOT_DATES[SNAPSHOT_DATES.length - 1];
+
+        fromInput.min = minDate;
+        fromInput.max = maxDate;
+        toInput.min = minDate;
+        toInput.max = maxDate;
+
+        /* Default: oldest as "from", newest as "to" */
+        fromInput.value = minDate;
+        toInput.value = maxDate;
+    }}
+
+    function formatDelta(from, to) {{
+        if (from === null || to === null || from === undefined || to === undefined) {{
+            return '<span class="delta-neutral">--</span>';
+        }}
+        let diff = to - from;
+        if (diff === 0) return '<span class="delta-neutral">0</span>';
+        let sign = diff > 0 ? '+' : '';
+        let cls = diff > 0 ? 'delta-positive' : 'delta-negative';
+        return '<span class="' + cls + '">' + sign + diff.toLocaleString() + '</span>';
+    }}
+
+    function renderComparison() {{
+        let fromDate = document.getElementById('compareFrom').value;
+        let toDate = document.getElementById('compareTo').value;
+        let body = document.getElementById('compareBody');
+        let hint = document.getElementById('compareHint');
+
+        if (!fromDate || !toDate) {{
+            body.innerHTML = '<div class="compare-empty">Select two dates to compare.</div>';
+            return;
+        }}
+
+        let fromIdx = findNearestSnapshot(fromDate);
+        let toIdx = findNearestSnapshot(toDate);
+
+        if (fromIdx === null || toIdx === null) {{
+            body.innerHTML = '<div class="compare-empty">No snapshot data available.</div>';
+            return;
+        }}
+
+        let snapA = DATA[fromIdx];
+        let snapB = DATA[toIdx];
+
+        if (snapA.date === snapB.date) {{
+            body.innerHTML = '<div class="compare-empty">Both dates resolve to the same snapshot (' + snapA.date + '). Select a wider range.</div>';
+            return;
+        }}
+
+        /* Show which actual snapshot dates were matched */
+        let hintParts = [];
+        if (snapA.date !== fromDate) hintParts.push('from matched to ' + snapA.date);
+        if (snapB.date !== toDate) hintParts.push('to matched to ' + snapB.date);
+        hint.textContent = hintParts.length > 0 ? 'Nearest: ' + hintParts.join(', ') : 'Selects nearest available snapshot';
+
+        let html = '<table class="compare-table">';
+        html += '<thead><tr><th>Metric</th><th>' + snapA.date + '</th><th>' + snapB.date + '</th><th>Change</th></tr></thead>';
+        html += '<tbody>';
+
+        COMPARE_METRICS.forEach(function(m) {{
+            let valA = getField(snapA, m.path);
+            let valB = getField(snapB, m.path);
+            let fmtA = valA !== null && valA !== undefined ? valA.toLocaleString() : '--';
+            let fmtB = valB !== null && valB !== undefined ? valB.toLocaleString() : '--';
+            html += '<tr><td>' + m.label + '</td><td>' + fmtA + '</td><td>' + fmtB + '</td><td>' + formatDelta(valA, valB) + '</td></tr>';
+        }});
+
+        html += '</tbody></table>';
+        body.innerHTML = html;
+    }}
+
+    initCompareDates();
+    if (DATA.length > 1) {{
+        renderComparison();
+    }}
+    document.getElementById('compareFrom').addEventListener('change', renderComparison);
+    document.getElementById('compareTo').addEventListener('change', renderComparison);
     </script>
 </body>
 </html>"""
