@@ -1,12 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MacAdmins Slack -- Workspace Statistics</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script>
+    /* Apply saved theme before first paint to prevent flash */
+    (function() {
+        var t = localStorage.getItem('slack-stats-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
     <style>
-        :root {
+        /* ---- Dark theme (default) ---- */
+        :root, [data-theme="dark"] {
             --bg-primary: #0a0e14;
             --bg-secondary: #0d1117;
             --bg-panel: #0f1419;
@@ -25,6 +33,81 @@
             --border: #1a2028;
             --border-emphasis: #2d333b;
             --grid-line: #1a2028;
+            --tooltip-bg: #0d1117;
+            --toggle-circle: #ffffff;
+        }
+
+        /* ---- Light theme ---- */
+        [data-theme="light"] {
+            --bg-primary: #f0f2f5;
+            --bg-secondary: #ffffff;
+            --bg-panel: #ffffff;
+            --bg-card: #f6f8fa;
+            --text-primary: #1a1a1a;
+            --text-secondary: #555555;
+            --text-muted: #6e7681;
+            --accent-blue: #0969da;
+            --accent-sky: #0284c7;
+            --accent-green: #1a7f37;
+            --accent-amber: #9a6700;
+            --accent-red: #cf222e;
+            --accent-purple: #8250df;
+            --accent-teal: #0f766e;
+            --border-subtle: #d8dee4;
+            --border: #d0d7de;
+            --border-emphasis: #afb8c1;
+            --grid-line: #e4e6e9;
+            --tooltip-bg: #ffffff;
+            --toggle-circle: #ffffff;
+        }
+
+        /* ---- System theme: inherit from OS preference ---- */
+        [data-theme="system"] {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #0d1117;
+            --bg-panel: #0f1419;
+            --bg-card: #131920;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-blue: #58a6ff;
+            --accent-sky: #0ea5e9;
+            --accent-green: #3fb950;
+            --accent-amber: #d29922;
+            --accent-red: #da3633;
+            --accent-purple: #a855f7;
+            --accent-teal: #10b981;
+            --border-subtle: #161b22;
+            --border: #1a2028;
+            --border-emphasis: #2d333b;
+            --grid-line: #1a2028;
+            --tooltip-bg: #0d1117;
+            --toggle-circle: #ffffff;
+        }
+
+        @media (prefers-color-scheme: light) {
+            [data-theme="system"] {
+                --bg-primary: #f0f2f5;
+                --bg-secondary: #ffffff;
+                --bg-panel: #ffffff;
+                --bg-card: #f6f8fa;
+                --text-primary: #1a1a1a;
+                --text-secondary: #555555;
+                --text-muted: #6e7681;
+                --accent-blue: #0969da;
+                --accent-sky: #0284c7;
+                --accent-green: #1a7f37;
+                --accent-amber: #9a6700;
+                --accent-red: #cf222e;
+                --accent-purple: #8250df;
+                --accent-teal: #0f766e;
+                --border-subtle: #d8dee4;
+                --border: #d0d7de;
+                --border-emphasis: #afb8c1;
+                --grid-line: #e4e6e9;
+                --tooltip-bg: #ffffff;
+                --toggle-circle: #ffffff;
+            }
         }
 
         * {
@@ -39,6 +122,7 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.5;
+            transition: background-color 0.15s ease, color 0.15s ease;
         }
 
         .container {
@@ -49,7 +133,7 @@
 
         header {
             display: flex;
-            align-items: baseline;
+            align-items: center;
             justify-content: space-between;
             padding: 10px 0;
             margin-bottom: 14px;
@@ -62,10 +146,71 @@
             letter-spacing: 0.02em;
         }
 
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         header .updated {
             color: var(--text-muted);
             font-size: 11px;
             font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Consolas', monospace;
+        }
+
+        /* ---- Theme toggle (iOS-style, 3-state) ---- */
+        .theme-toggle {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: background-color 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .toggle-circle {
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            width: 20px;
+            height: 20px;
+            background: var(--toggle-circle);
+            border-radius: 50%;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+        }
+
+        .theme-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            flex-shrink: 0;
+        }
+
+        /* Toggle states */
+        [data-theme="dark"] .theme-toggle {
+            background: #58a6ff;
+        }
+        [data-theme="dark"] .toggle-circle {
+            transform: translateX(24px);
+        }
+
+        [data-theme="light"] .theme-toggle {
+            background: #d29922;
+        }
+        [data-theme="light"] .toggle-circle {
+            transform: translateX(0);
+        }
+
+        [data-theme="system"] .theme-toggle {
+            background: #6e7681;
+        }
+        [data-theme="system"] .toggle-circle {
+            transform: translateX(12px);
         }
 
         .cards {
@@ -80,6 +225,7 @@
             border: 1px solid var(--border);
             border-radius: 3px;
             padding: 10px;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
         }
 
         .card .label {
@@ -130,6 +276,7 @@
             border: 1px solid var(--border);
             border-radius: 3px;
             padding: 10px;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
         }
 
         .chart-section h2 {
@@ -181,7 +328,13 @@
     <div class="container">
         <header>
             <h1>MacAdmins Slack -- Workspace Statistics</h1>
-            <span class="updated">updated 3 April 2026</span>
+            <div class="header-right">
+                <span class="updated">updated 3 April 2026</span>
+                <span class="theme-label" id="themeLabel">dark</span>
+                <button class="theme-toggle" id="themeToggle" title="Toggle theme (Dark / Light / System)" aria-label="Switch to light mode">
+                    <span class="toggle-circle"></span>
+                </button>
+            </div>
         </header>
 
         <div class="cards">
@@ -249,64 +402,119 @@
     <script>
     const DATA = [{"date": "2026-04-03", "generated": "2026-04-03T18:00:00", "membership": {"total_registered": 84646, "active": 83449, "deactivated": 1197, "full_members": 83444, "guests_multi_channel": 4, "guests_single_channel": 1, "admins": 13, "owners": 1, "primary_owner": 1, "bots": 123}, "channels": {"total_channels": 1500, "active_channels": 1425, "archived_channels": 75}, "activity": {"date": "2026-04-01", "source": "public_channel", "channels_in_analytics": 1425, "channel_messages_posted": 2269, "channel_files_shared": 0, "channel_reactions": 1081, "channel_unique_viewers": 16636, "channel_unique_posters": 762, "messages_posted": 2269, "reactions_added": 1081}}];
 
+    /* ---- Theme toggle ---- */
+    const THEMES = ['dark', 'light', 'system'];
+    const LABELS = { dark: 'Switch to light mode', light: 'Switch to system mode', system: 'Switch to dark mode' };
+
+    function getEffectiveTheme(theme) {
+        if (theme !== 'system') return theme;
+        return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+
+    function getThemeColours() {
+        let s = getComputedStyle(document.documentElement);
+        return {
+            text: s.getPropertyValue('--text-secondary').trim(),
+            muted: s.getPropertyValue('--text-muted').trim(),
+            grid: s.getPropertyValue('--grid-line').trim(),
+            border: s.getPropertyValue('--border').trim(),
+            tooltipBg: s.getPropertyValue('--tooltip-bg').trim(),
+            tooltipBorder: s.getPropertyValue('--border-emphasis').trim(),
+            tooltipText: s.getPropertyValue('--text-primary').trim(),
+        };
+    }
+
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('slack-stats-theme', theme);
+        document.getElementById('themeLabel').textContent = theme;
+
+        let btn = document.getElementById('themeToggle');
+        btn.setAttribute('aria-label', LABELS[theme]);
+
+        // Rebuild charts with new colours
+        rebuildAllCharts();
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', function() {
+        let current = localStorage.getItem('slack-stats-theme') || 'dark';
+        let next = THEMES[(THEMES.indexOf(current) + 1) % THEMES.length];
+        applyTheme(next);
+    });
+
+    // Respond to OS theme changes when in system mode
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
+        if ((localStorage.getItem('slack-stats-theme') || 'dark') === 'system') {
+            rebuildAllCharts();
+        }
+    });
+
+    // Set initial label
+    (function() {
+        let t = localStorage.getItem('slack-stats-theme') || 'dark';
+        document.getElementById('themeLabel').textContent = t;
+        document.getElementById('themeToggle').setAttribute('aria-label', LABELS[t]);
+    })();
+
+    /* ---- Chart setup ---- */
     Chart.defaults.font.family = "'SF Mono', 'Monaco', 'Cascadia Code', 'Consolas', monospace";
     Chart.defaults.font.size = 10;
 
-    const CHART_DEFAULTS = {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-            mode: 'index',
-            intersect: false,
-        },
-        plugins: {
-            legend: {
-                labels: {
-                    color: '#8b949e',
-                    usePointStyle: true,
-                    pointStyle: 'circle',
-                    padding: 12,
-                    font: { size: 10 },
+    let chartInstances = {};
+
+    function getChartDefaults() {
+        let c = getThemeColours();
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: c.text,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 12,
+                        font: { size: 10 },
+                    },
                 },
-            },
-            tooltip: {
-                backgroundColor: '#0d1117',
-                borderColor: '#2d333b',
-                borderWidth: 1,
-                titleColor: '#c9d1d9',
-                bodyColor: '#c9d1d9',
-                titleFont: { size: 10 },
-                bodyFont: { size: 10 },
-                padding: 8,
-                callbacks: {
-                    label: function(context) {
-                        let value = context.parsed.y;
-                        if (value === null || value === undefined) return '';
-                        return context.dataset.label + ': ' + value.toLocaleString();
+                tooltip: {
+                    backgroundColor: c.tooltipBg,
+                    borderColor: c.tooltipBorder,
+                    borderWidth: 1,
+                    titleColor: c.tooltipText,
+                    bodyColor: c.tooltipText,
+                    titleFont: { size: 10 },
+                    bodyFont: { size: 10 },
+                    padding: 8,
+                    callbacks: {
+                        label: function(context) {
+                            let value = context.parsed.y;
+                            if (value === null || value === undefined) return '';
+                            return context.dataset.label + ': ' + value.toLocaleString();
+                        },
                     },
                 },
             },
-        },
-        scales: {
-            x: {
-                ticks: { color: '#6e7681', font: { size: 10 } },
-                grid: { color: '#1a2028' },
-                border: { color: '#1a2028' },
-            },
-            y: {
-                ticks: {
-                    color: '#6e7681',
-                    font: { size: 10 },
-                    callback: function(value) {
-                        return value.toLocaleString();
-                    },
+            scales: {
+                x: {
+                    ticks: { color: c.muted, font: { size: 10 } },
+                    grid: { color: c.grid },
+                    border: { color: c.grid },
                 },
-                grid: { color: '#1a2028' },
-                border: { color: '#1a2028' },
-                beginAtZero: false,
+                y: {
+                    ticks: {
+                        color: c.muted,
+                        font: { size: 10 },
+                        callback: function(value) { return value.toLocaleString(); },
+                    },
+                    grid: { color: c.grid },
+                    border: { color: c.grid },
+                    beginAtZero: false,
+                },
             },
-        },
-    };
+        };
+    }
 
     function getField(snapshot, path) {
         let parts = path.split('.');
@@ -321,121 +529,120 @@
     function buildChart(canvasId, labels, datasets) {
         if (labels.length < 1) {
             let container = document.getElementById(canvasId).parentElement;
-            container.innerHTML = '<div class="no-data">Insufficient data for trends -- check back after more weekly snapshots have been collected.</div>';
+            container.innerHTML = '<div class="no-data">Insufficient data for trends -- check back after more daily snapshots have been collected.</div>';
             return;
         }
 
+        if (chartInstances[canvasId]) {
+            chartInstances[canvasId].destroy();
+        }
+
         let ctx = document.getElementById(canvasId).getContext('2d');
-        new Chart(ctx, {
+        chartInstances[canvasId] = new Chart(ctx, {
             type: 'line',
             data: { labels: labels, datasets: datasets },
-            options: CHART_DEFAULTS,
+            options: getChartDefaults(),
         });
     }
 
-    let dates = DATA.map(s => s.date);
+    function rebuildAllCharts() {
+        /* Small delay so CSS variables resolve after data-theme change */
+        requestAnimationFrame(function() {
+            let dates = DATA.map(s => s.date);
 
-    buildChart('membershipChart', dates, [
-        {
-            label: 'Active Members',
-            data: DATA.map(s => getField(s, 'membership.active')),
-            borderColor: '#58a6ff',
-            backgroundColor: 'rgba(88, 166, 255, 0.08)',
-            fill: true,
-            tension: 0.3,
-            borderWidth: 1.5,
-            pointRadius: 3,
-            pointBackgroundColor: '#58a6ff',
-        },
-        {
-            label: 'Total Registered',
-            data: DATA.map(s => getField(s, 'membership.total_registered')),
-            borderColor: '#6e7681',
-            borderDash: [4, 3],
-            tension: 0.3,
-            borderWidth: 1,
-            pointRadius: 2,
-            pointBackgroundColor: '#6e7681',
-        },
-        {
-            label: 'Deactivated',
-            data: DATA.map(s => getField(s, 'membership.deactivated')),
-            borderColor: '#da3633',
-            tension: 0.3,
-            borderWidth: 1.5,
-            pointRadius: 2,
-            pointBackgroundColor: '#da3633',
-        },
-    ]);
+            let eff = getEffectiveTheme(localStorage.getItem('slack-stats-theme') || 'dark');
+            let accentBlue = eff === 'light' ? '#0969da' : '#58a6ff';
+            let accentGreen = eff === 'light' ? '#1a7f37' : '#3fb950';
+            let accentAmber = eff === 'light' ? '#9a6700' : '#d29922';
+            let accentRed = eff === 'light' ? '#cf222e' : '#da3633';
+            let accentSky = eff === 'light' ? '#0284c7' : '#0ea5e9';
+            let accentPurple = eff === 'light' ? '#8250df' : '#a855f7';
+            let accentTeal = eff === 'light' ? '#0f766e' : '#10b981';
+            let muted = eff === 'light' ? '#6e7681' : '#6e7681';
 
-    buildChart('channelsChart', dates, [
-        {
-            label: 'Active Channels',
-            data: DATA.map(s => getField(s, 'channels.active_channels')),
-            borderColor: '#3fb950',
-            backgroundColor: 'rgba(63, 185, 80, 0.08)',
-            fill: true,
-            tension: 0.3,
-            borderWidth: 1.5,
-            pointRadius: 3,
-            pointBackgroundColor: '#3fb950',
-        },
-        {
-            label: 'Archived Channels',
-            data: DATA.map(s => getField(s, 'channels.archived_channels')),
-            borderColor: '#d29922',
-            tension: 0.3,
-            borderWidth: 1.5,
-            pointRadius: 2,
-            pointBackgroundColor: '#d29922',
-        },
-    ]);
+            buildChart('membershipChart', dates, [
+                {
+                    label: 'Active Members',
+                    data: DATA.map(s => getField(s, 'membership.active')),
+                    borderColor: accentBlue,
+                    backgroundColor: accentBlue + '14',
+                    fill: true, tension: 0.3, borderWidth: 1.5,
+                    pointRadius: 3, pointBackgroundColor: accentBlue,
+                },
+                {
+                    label: 'Total Registered',
+                    data: DATA.map(s => getField(s, 'membership.total_registered')),
+                    borderColor: muted, borderDash: [4, 3],
+                    tension: 0.3, borderWidth: 1,
+                    pointRadius: 2, pointBackgroundColor: muted,
+                },
+                {
+                    label: 'Deactivated',
+                    data: DATA.map(s => getField(s, 'membership.deactivated')),
+                    borderColor: accentRed,
+                    tension: 0.3, borderWidth: 1.5,
+                    pointRadius: 2, pointBackgroundColor: accentRed,
+                },
+            ]);
 
-    buildChart('activityChart', dates, [
-        {
-            label: 'Messages Posted',
-            data: DATA.map(s => getField(s, 'activity.channel_messages_posted') || getField(s, 'activity.messages_posted')),
-            borderColor: '#0ea5e9',
-            backgroundColor: 'rgba(14, 165, 233, 0.08)',
-            fill: true,
-            tension: 0.3,
-            borderWidth: 1.5,
-            pointRadius: 3,
-            pointBackgroundColor: '#0ea5e9',
-        },
-        {
-            label: 'Reactions Added',
-            data: DATA.map(s => getField(s, 'activity.channel_reactions') || getField(s, 'activity.reactions_added')),
-            borderColor: '#d29922',
-            tension: 0.3,
-            borderWidth: 1.5,
-            pointRadius: 2,
-            pointBackgroundColor: '#d29922',
-        },
-    ]);
+            buildChart('channelsChart', dates, [
+                {
+                    label: 'Active Channels',
+                    data: DATA.map(s => getField(s, 'channels.active_channels')),
+                    borderColor: accentGreen,
+                    backgroundColor: accentGreen + '14',
+                    fill: true, tension: 0.3, borderWidth: 1.5,
+                    pointRadius: 3, pointBackgroundColor: accentGreen,
+                },
+                {
+                    label: 'Archived Channels',
+                    data: DATA.map(s => getField(s, 'channels.archived_channels')),
+                    borderColor: accentAmber,
+                    tension: 0.3, borderWidth: 1.5,
+                    pointRadius: 2, pointBackgroundColor: accentAmber,
+                },
+            ]);
 
-    buildChart('engagementChart', dates, [
-        {
-            label: 'Unique Viewers',
-            data: DATA.map(s => getField(s, 'activity.channel_unique_viewers')),
-            borderColor: '#a855f7',
-            backgroundColor: 'rgba(168, 85, 247, 0.08)',
-            fill: true,
-            tension: 0.3,
-            borderWidth: 1.5,
-            pointRadius: 3,
-            pointBackgroundColor: '#a855f7',
-        },
-        {
-            label: 'Unique Posters',
-            data: DATA.map(s => getField(s, 'activity.channel_unique_posters')),
-            borderColor: '#10b981',
-            tension: 0.3,
-            borderWidth: 1.5,
-            pointRadius: 2,
-            pointBackgroundColor: '#10b981',
-        },
-    ]);
+            buildChart('activityChart', dates, [
+                {
+                    label: 'Messages Posted',
+                    data: DATA.map(s => getField(s, 'activity.channel_messages_posted') || getField(s, 'activity.messages_posted')),
+                    borderColor: accentSky,
+                    backgroundColor: accentSky + '14',
+                    fill: true, tension: 0.3, borderWidth: 1.5,
+                    pointRadius: 3, pointBackgroundColor: accentSky,
+                },
+                {
+                    label: 'Reactions Added',
+                    data: DATA.map(s => getField(s, 'activity.channel_reactions') || getField(s, 'activity.reactions_added')),
+                    borderColor: accentAmber,
+                    tension: 0.3, borderWidth: 1.5,
+                    pointRadius: 2, pointBackgroundColor: accentAmber,
+                },
+            ]);
+
+            buildChart('engagementChart', dates, [
+                {
+                    label: 'Unique Viewers',
+                    data: DATA.map(s => getField(s, 'activity.channel_unique_viewers')),
+                    borderColor: accentPurple,
+                    backgroundColor: accentPurple + '14',
+                    fill: true, tension: 0.3, borderWidth: 1.5,
+                    pointRadius: 3, pointBackgroundColor: accentPurple,
+                },
+                {
+                    label: 'Unique Posters',
+                    data: DATA.map(s => getField(s, 'activity.channel_unique_posters')),
+                    borderColor: accentTeal,
+                    tension: 0.3, borderWidth: 1.5,
+                    pointRadius: 2, pointBackgroundColor: accentTeal,
+                },
+            ]);
+        });
+    }
+
+    /* Initial render */
+    rebuildAllCharts();
     </script>
 </body>
 </html>
