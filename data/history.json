@@ -1,0 +1,38 @@
+{
+  "workspace": "macadmins",
+  "snapshots": [
+    {
+      "date": "2026-04-03",
+      "generated": "2026-04-03T18:00:00",
+      "membership": {
+        "total_registered": 84646,
+        "active": 83449,
+        "deactivated": 1197,
+        "full_members": 83444,
+        "guests_multi_channel": 4,
+        "guests_single_channel": 1,
+        "admins": 13,
+        "owners": 1,
+        "primary_owner": 1,
+        "bots": 123
+      },
+      "channels": {
+        "total_channels": 1500,
+        "active_channels": 1425,
+        "archived_channels": 75
+      },
+      "activity": {
+        "date": "2026-04-01",
+        "source": "public_channel",
+        "channels_in_analytics": 1425,
+        "channel_messages_posted": 2269,
+        "channel_files_shared": 0,
+        "channel_reactions": 1081,
+        "channel_unique_viewers": 16636,
+        "channel_unique_posters": 762,
+        "messages_posted": 2269,
+        "reactions_added": 1081
+      }
+    }
+  ]
+}

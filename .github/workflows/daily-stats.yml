@@ -1,0 +1,95 @@
+name: Daily Workspace Statistics
+
+on:
+  schedule:
+    - cron: '0 10 * * *'  # Daily at 10:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: stats-collection
+  cancel-in-progress: true
+
+jobs:
+  collect-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Collect workspace statistics
+        env:
+          SLACK_USER_TOKEN: ${{ secrets.SLACK_USER_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          OUTPUT_FORMAT: snapshot
+          OUTPUT_FILE: output/snapshot.json
+        run: python slack-stats.py
+
+      - name: Update history and generate dashboard
+        run: python generate-dashboard.py --snapshot-file output/snapshot.json
+
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/history.json docs/index.html
+          if git diff --staged --quiet; then
+            echo "[INFO] No changes to commit"
+          else
+            git commit -m "Update workspace statistics $(date -u +%Y-%m-%d)"
+            git push origin main
+          fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Workspace Statistics Collection" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f output/snapshot.json ]; then
+            python3 -c "
+          import json
+          with open('output/snapshot.json') as f:
+              d = json.load(f)
+              m = d.get('membership', {})
+              c = d.get('channels', {})
+              a = d.get('activity', {})
+              print(f'- **Active members:** {m.get(\"active\", \"N/A\"):,}')
+              print(f'- **Active channels:** {c.get(\"active_channels\", \"N/A\")}')
+              print(f'- **Messages ({a.get(\"date\", \"?\")}):** {a.get(\"channel_messages_posted\", a.get(\"messages_posted\", \"N/A\")):,}')
+              print(f'- **Unique viewers:** {a.get(\"channel_unique_viewers\", \"N/A\"):,}')
+          " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Snapshot file not found -- collection may have failed." >> $GITHUB_STEP_SUMMARY
+          fi
