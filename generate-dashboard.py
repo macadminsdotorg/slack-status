@@ -530,27 +530,27 @@ def generate_dashboard(history: dict):
         </header>
 
         <div class="cards">
-            <div class="card">
+            <div class="card" title="Full members, multi-channel guests, and single-channel guests who have not been deactivated. Excludes bots and Workflow Builder automations.">
                 <span class="label"><span class="status-dot"></span>Active Members</span>
                 <span class="value">{membership.get('active', 0):,}</span>
             </div>
-            <div class="card">
+            <div class="card" title="Public channels that have not been archived. Does not include private channels or direct messages.">
                 <span class="label"><span class="status-dot"></span>Active Channels</span>
                 <span class="value">{channels.get('active_channels', 0):,}</span>
             </div>
-            <div class="card">
+            <div class="card" title="Total messages posted across all public channels on the analytics date ({activity.get('date', 'N/A')}). Private channels and DMs are not included.">
                 <span class="label"><span class="status-dot"></span>Messages (daily)</span>
                 <span class="value">{activity.get('channel_messages_posted', activity.get('messages_posted', 0)):,}</span>
             </div>
-            <div class="card">
+            <div class="card" title="Unique members who viewed at least one public channel on the analytics date. A single member viewing multiple channels is counted once.">
                 <span class="label"><span class="status-dot"></span>Daily Viewers</span>
                 <span class="value">{activity.get('channel_unique_viewers', 0):,}</span>
             </div>
-            <div class="card">
+            <div class="card" title="Unique members who posted at least one message in a public channel on the analytics date. A single member posting in multiple channels is counted once.">
                 <span class="label"><span class="status-dot"></span>Daily Posters</span>
                 <span class="value">{activity.get('channel_unique_posters', 0):,}</span>
             </div>
-            <div class="card">
+            <div class="card" title="Total emoji reactions added across all public channels on the analytics date ({activity.get('date', 'N/A')}).">
                 <span class="label"><span class="status-dot"></span>Reactions (daily)</span>
                 <span class="value">{activity.get('channel_reactions', activity.get('reactions_added', 0)):,}</span>
             </div>
@@ -572,28 +572,28 @@ def generate_dashboard(history: dict):
 
         <div class="charts-grid">
             <div class="chart-section">
-                <h2>Membership Over Time</h2>
+                <h2 title="Active members, total registered, and deactivated accounts over time. Excludes bots and Workflow Builder automations.">Membership Over Time</h2>
                 <div class="chart-container">
                     <canvas id="membershipChart"></canvas>
                 </div>
             </div>
 
             <div class="chart-section">
-                <h2>Channels Over Time</h2>
+                <h2 title="Public channels only. Active channels are not archived; archived channels remain searchable but read-only.">Channels Over Time</h2>
                 <div class="chart-container">
                     <canvas id="channelsChart"></canvas>
                 </div>
             </div>
 
             <div class="chart-section">
-                <h2>Daily Activity Over Time</h2>
+                <h2 title="Messages and reactions across all public channels per analytics date. Private channels and DMs are not included.">Daily Activity Over Time</h2>
                 <div class="chart-container">
                     <canvas id="activityChart"></canvas>
                 </div>
             </div>
 
             <div class="chart-section">
-                <h2>Daily Engagement Over Time</h2>
+                <h2 title="Unique viewers and posters per analytics date. Each member counted once regardless of how many channels they accessed.">Daily Engagement Over Time</h2>
                 <div class="chart-container">
                     <canvas id="engagementChart"></canvas>
                 </div>
@@ -852,18 +852,18 @@ def generate_dashboard(history: dict):
 
     /* ---- Comparison panel ---- */
     const COMPARE_METRICS = [
-        {{ label: 'Active Members', path: 'membership.active' }},
-        {{ label: 'Total Registered', path: 'membership.total_registered' }},
-        {{ label: 'Deactivated', path: 'membership.deactivated' }},
-        {{ label: 'Full Members', path: 'membership.full_members' }},
-        {{ label: 'Admins', path: 'membership.admins' }},
-        {{ label: 'Bots', path: 'membership.bots' }},
-        {{ label: 'Active Channels', path: 'channels.active_channels' }},
-        {{ label: 'Archived Channels', path: 'channels.archived_channels' }},
-        {{ label: 'Messages Posted', path: 'activity.channel_messages_posted' }},
-        {{ label: 'Reactions', path: 'activity.channel_reactions' }},
-        {{ label: 'Unique Viewers', path: 'activity.channel_unique_viewers' }},
-        {{ label: 'Unique Posters', path: 'activity.channel_unique_posters' }},
+        {{ label: 'Active Members', path: 'membership.active', tip: 'Non-deactivated human accounts. Excludes bots and Workflow Builder automations.' }},
+        {{ label: 'Total Registered', path: 'membership.total_registered', tip: 'All human accounts ever created, including deactivated. Excludes bots.' }},
+        {{ label: 'Deactivated', path: 'membership.deactivated', tip: 'Human accounts that have been deactivated by admins or by the user themselves.' }},
+        {{ label: 'Full Members', path: 'membership.full_members', tip: 'Active members with full workspace access. Excludes single-channel and multi-channel guests.' }},
+        {{ label: 'Admins', path: 'membership.admins', tip: 'Workspace administrators with elevated permissions for managing channels, members, and settings.' }},
+        {{ label: 'Bots', path: 'membership.bots', tip: 'Includes app integrations (e.g. GitHub, Trello), Slackbot, and Workflow Builder automations (wf_bot / wb_bot accounts).' }},
+        {{ label: 'Active Channels', path: 'channels.active_channels', tip: 'Public channels that have not been archived. Does not include private channels or DMs.' }},
+        {{ label: 'Archived Channels', path: 'channels.archived_channels', tip: 'Channels that have been archived. They remain searchable but no new messages can be posted.' }},
+        {{ label: 'Messages Posted', path: 'activity.channel_messages_posted', tip: 'Total messages posted across all public channels on the analytics date. Private channels and DMs not included.' }},
+        {{ label: 'Reactions', path: 'activity.channel_reactions', tip: 'Total emoji reactions added across all public channels on the analytics date.' }},
+        {{ label: 'Unique Viewers', path: 'activity.channel_unique_viewers', tip: 'Unique members who viewed at least one public channel. Each member counted once regardless of how many channels viewed.' }},
+        {{ label: 'Unique Posters', path: 'activity.channel_unique_posters', tip: 'Unique members who posted at least one message in a public channel. Each member counted once.' }},
     ];
 
     /* All snapshot dates sorted chronologically */
@@ -957,7 +957,8 @@ def generate_dashboard(history: dict):
             let valB = getField(snapB, m.path);
             let fmtA = valA !== null && valA !== undefined ? valA.toLocaleString() : '--';
             let fmtB = valB !== null && valB !== undefined ? valB.toLocaleString() : '--';
-            html += '<tr><td>' + m.label + '</td><td>' + fmtA + '</td><td>' + fmtB + '</td><td>' + formatDelta(valA, valB) + '</td></tr>';
+            let tipAttr = m.tip ? ' title="' + m.tip.replace(/"/g, '&quot;') + '"' : '';
+            html += '<tr' + tipAttr + '><td>' + m.label + '</td><td>' + fmtA + '</td><td>' + fmtB + '</td><td>' + formatDelta(valA, valB) + '</td></tr>';
         }});
 
         html += '</tbody></table>';
