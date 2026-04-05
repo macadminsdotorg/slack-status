@@ -77,6 +77,8 @@ def generate_dashboard(history: dict):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MacAdmins Slack -- Workspace Statistics</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
     <script>
     /* Apply saved theme before first paint to prevent flash */
     (function() {{
@@ -230,6 +232,64 @@ def generate_dashboard(history: dict):
             font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Consolas', monospace;
         }}
 
+        /* ---- Events toggle ---- */
+        .events-toggle {{
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+        }}
+
+        .events-toggle input {{
+            accent-color: var(--accent-blue);
+            cursor: pointer;
+        }}
+
+        .events-toggle input:checked + span {{
+            color: var(--accent-blue);
+        }}
+
+        /* ---- View selector ---- */
+        .view-selector {{
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            border: 1px solid var(--border-emphasis);
+            border-radius: 3px;
+            overflow: hidden;
+        }}
+
+        .view-selector button {{
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 3px 8px;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }}
+
+        .view-selector button:hover {{
+            color: var(--text-primary);
+        }}
+
+        .view-selector button.active {{
+            background: var(--accent-blue);
+            color: #ffffff;
+        }}
+
+        [data-theme="light"] .view-selector button.active {{
+            background: var(--accent-blue);
+            color: #ffffff;
+        }}
+
         /* ---- Theme toggle (iOS-style, 3-state) ---- */
         .theme-toggle {{
             position: relative;
@@ -351,21 +411,119 @@ def generate_dashboard(history: dict):
             transition: background-color 0.15s ease, border-color 0.15s ease;
         }}
 
+        .chart-header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-subtle);
+        }}
+
         .chart-section h2 {{
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.06em;
             color: var(--text-secondary);
-            margin-bottom: 10px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid var(--border-subtle);
+            margin: 0;
+        }}
+
+        .expand-btn {{
+            background: none;
+            border: 1px solid var(--border-emphasis);
+            border-radius: 3px;
+            color: var(--text-muted);
+            font-size: 10px;
+            padding: 2px 8px;
+            cursor: pointer;
+            transition: color 0.15s ease, border-color 0.15s ease;
+        }}
+
+        .expand-btn:hover {{
+            color: var(--text-primary);
+            border-color: var(--text-secondary);
         }}
 
         .chart-container {{
             position: relative;
             width: 100%;
             height: 220px;
+        }}
+
+        /* ---- Fullscreen modal ---- */
+        .modal-overlay {{
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            padding: 20px;
+            justify-content: center;
+            align-items: center;
+        }}
+
+        .modal-overlay.active {{
+            display: flex;
+        }}
+
+        .modal-content {{
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+        }}
+
+        .modal-header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+        }}
+
+        .modal-header h2 {{
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            margin: 0;
+        }}
+
+        .modal-header .modal-hint {{
+            font-size: 10px;
+            color: var(--text-muted);
+        }}
+
+        .modal-close {{
+            background: none;
+            border: 1px solid var(--border-emphasis);
+            border-radius: 3px;
+            color: var(--text-muted);
+            font-size: 11px;
+            padding: 4px 12px;
+            cursor: pointer;
+            transition: color 0.15s ease, border-color 0.15s ease;
+        }}
+
+        .modal-close:hover {{
+            color: var(--text-primary);
+            border-color: var(--text-secondary);
+        }}
+
+        .modal-chart-container {{
+            flex: 1;
+            position: relative;
+            min-height: 0;
         }}
 
         .no-data {{
@@ -522,6 +680,15 @@ def generate_dashboard(history: dict):
             <h1>MacAdmins Slack -- Workspace Statistics</h1>
             <div class="header-right">
                 <span class="updated">updated {last_updated}</span>
+                <div class="view-selector" id="viewSelector">
+                    <button data-view="daily" class="active">daily</button>
+                    <button data-view="weekly">weekly</button>
+                    <button data-view="monthly">monthly</button>
+                    <button data-view="annual">annual</button>
+                </div>
+                <label class="events-toggle" title="Overlay Apple events on charts">
+                    <input type="checkbox" id="eventsToggle"> <span>events</span>
+                </label>
                 <span class="theme-label" id="themeLabel">dark</span>
                 <button class="theme-toggle" id="themeToggle" title="Toggle theme (Dark / Light / System)" aria-label="Switch to light mode">
                     <span class="toggle-circle"></span>
@@ -572,30 +739,59 @@ def generate_dashboard(history: dict):
 
         <div class="charts-grid">
             <div class="chart-section">
-                <h2 title="Active members, total registered, and deactivated accounts over time. Excludes bots and Workflow Builder automations.">Membership Over Time</h2>
+                <div class="chart-header">
+                    <h2 title="Active members, total registered, and deactivated accounts over time. Excludes bots and Workflow Builder automations.">Membership Over Time</h2>
+                    <button class="expand-btn" data-chart="membershipChart" data-title="Membership Over Time">expand</button>
+                </div>
                 <div class="chart-container">
                     <canvas id="membershipChart"></canvas>
                 </div>
             </div>
 
             <div class="chart-section">
-                <h2 title="Public channels only. Active channels are not archived; archived channels remain searchable but read-only.">Channels Over Time</h2>
+                <div class="chart-header">
+                    <h2 title="Public channels only. Active channels are not archived; archived channels remain searchable but read-only.">Channels Over Time</h2>
+                    <button class="expand-btn" data-chart="channelsChart" data-title="Channels Over Time">expand</button>
+                </div>
                 <div class="chart-container">
                     <canvas id="channelsChart"></canvas>
                 </div>
             </div>
 
             <div class="chart-section">
-                <h2 title="Messages and reactions across all public channels per analytics date. Private channels and DMs are not included.">Daily Activity Over Time</h2>
+                <div class="chart-header">
+                    <h2 title="Messages and reactions across all public channels per analytics date. Private channels and DMs are not included.">Daily Activity Over Time</h2>
+                    <button class="expand-btn" data-chart="activityChart" data-title="Daily Activity Over Time">expand</button>
+                </div>
                 <div class="chart-container">
                     <canvas id="activityChart"></canvas>
                 </div>
             </div>
 
             <div class="chart-section">
-                <h2 title="Unique viewers and posters per analytics date. Each member counted once regardless of how many channels they accessed.">Daily Engagement Over Time</h2>
+                <div class="chart-header">
+                    <h2 title="Unique viewers and posters per analytics date. Each member counted once regardless of how many channels they accessed.">Daily Engagement Over Time</h2>
+                    <button class="expand-btn" data-chart="engagementChart" data-title="Daily Engagement Over Time">expand</button>
+                </div>
                 <div class="chart-container">
                     <canvas id="engagementChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="chartModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle"></h2>
+                    <span class="modal-hint">Drag to select, scroll to zoom, double-click to reset</span>
+                    <label class="events-toggle" title="Overlay Apple events">
+                        <input type="checkbox" id="modalEventsToggle"> <span>events</span>
+                    </label>
+                    <button class="modal-close" id="modalReset" style="margin-right: 6px;">reset zoom</button>
+                    <button class="modal-close" id="modalClose">close</button>
+                </div>
+                <div class="modal-chart-container">
+                    <canvas id="modalChart"></canvas>
                 </div>
             </div>
         </div>
@@ -662,26 +858,216 @@ def generate_dashboard(history: dict):
         document.getElementById('themeToggle').setAttribute('aria-label', LABELS[t]);
     }})();
 
+    /* ---- Apple events overlay ---- */
+    const APPLE_EVENTS = [
+        /* 2025 */
+        {{ date: '2025-03-12', label: 'iOS 18.3.2', type: 'release' }},
+        {{ date: '2025-03-31', label: 'iOS 18.4 / macOS 15.4', type: 'release' }},
+        {{ date: '2025-06-09', label: 'WWDC 2025', type: 'event' }},
+        {{ date: '2025-09-09', label: 'iPhone 17 Event', type: 'event' }},
+        {{ date: '2025-09-15', label: 'iOS 26 / macOS Tahoe', type: 'release' }},
+        {{ date: '2025-09-19', label: 'iPhone 17 Launch', type: 'launch' }},
+        {{ date: '2025-10-15', label: 'M5 MacBook Pro / iPad Pro', type: 'launch' }},
+        {{ date: '2025-10-22', label: 'M5 Devices Available', type: 'launch' }},
+        {{ date: '2025-11-03', label: 'iOS 26.1 / macOS 26.1', type: 'release' }},
+        {{ date: '2025-12-12', label: 'iOS 26.2 / macOS 26.2', type: 'release' }},
+        /* 2026 */
+        {{ date: '2026-02-11', label: 'iOS 26.3 / macOS 26.3', type: 'release' }},
+        {{ date: '2026-03-04', label: 'Apple Experience Event', type: 'event' }},
+        {{ date: '2026-03-11', label: 'iPhone 17e / MacBook Air M5', type: 'launch' }},
+        {{ date: '2026-03-24', label: 'iOS 26.4 / macOS 26.4', type: 'release' }},
+    ];
+
+    const EVENT_COLOURS = {{
+        event: {{ line: '#da3633', label: '#da3633' }},
+        launch: {{ line: '#d29922', label: '#d29922' }},
+        release: {{ line: '#6e7681', label: '#6e7681' }},
+    }};
+
+    let showEvents = false;
+
+    /* Build a lookup from date string to list of events */
+    let eventsByDate = {{}};
+    APPLE_EVENTS.forEach(function(ev) {{
+        if (!eventsByDate[ev.date]) eventsByDate[ev.date] = [];
+        eventsByDate[ev.date].push(ev);
+    }});
+
+    function getEventsForIndex(dates, idx) {{
+        if (!showEvents || idx < 0 || idx >= dates.length) return [];
+        let dateStr = dates[idx];
+        /* Exact match */
+        if (eventsByDate[dateStr]) return eventsByDate[dateStr];
+        /* For aggregated views, check if any events fall within the period label */
+        let matches = [];
+        APPLE_EVENTS.forEach(function(ev) {{
+            if (dateStr.length === 7 && ev.date.startsWith(dateStr)) matches.push(ev);
+            else if (dateStr.length === 4 && ev.date.startsWith(dateStr)) matches.push(ev);
+            else if (dateStr.indexOf('-W') !== -1) {{
+                /* Weekly: check if event's week key matches */
+                let evWeek = getWeekKey(ev.date);
+                if (evWeek === dateStr) matches.push(ev);
+            }}
+        }});
+        return matches;
+    }}
+
+    function getEventAnnotations(dates) {{
+        if (!showEvents) return {{}};
+
+        let annotations = {{}};
+        APPLE_EVENTS.forEach(function(ev, i) {{
+            let idx = dates.indexOf(ev.date);
+            if (idx === -1) {{
+                /* Find nearest date in the dataset */
+                let nearest = null;
+                let minDist = Infinity;
+                let evTime = new Date(ev.date).getTime();
+                dates.forEach(function(d, j) {{
+                    let dist = Math.abs(new Date(d).getTime() - evTime);
+                    if (dist < minDist) {{ minDist = dist; nearest = j; }}
+                }});
+                if (nearest !== null && minDist < 3 * 86400000) idx = nearest;
+            }}
+            if (idx === -1) return;
+
+            let colours = EVENT_COLOURS[ev.type] || EVENT_COLOURS.release;
+            annotations['event' + i] = {{
+                type: 'line',
+                xMin: idx,
+                xMax: idx,
+                borderColor: colours.line,
+                borderWidth: 1,
+                borderDash: ev.type === 'release' ? [3, 3] : [],
+            }};
+        }});
+        return annotations;
+    }}
+
+    function refreshAfterSettingsChange() {{
+        let reopenId = currentModalChartId;
+        let reopenTitle = currentModalTitle;
+        rebuildAllCharts();
+        if (reopenId) {{
+            /* Reopen after rebuildAllCharts' requestAnimationFrame completes */
+            requestAnimationFrame(function() {{
+                requestAnimationFrame(function() {{
+                    openModal(reopenId, reopenTitle);
+                }});
+            }});
+        }}
+    }}
+
+    document.getElementById('eventsToggle').addEventListener('change', function() {{
+        showEvents = this.checked;
+        document.getElementById('modalEventsToggle').checked = showEvents;
+        refreshAfterSettingsChange();
+    }});
+
+    document.getElementById('modalEventsToggle').addEventListener('change', function() {{
+        showEvents = this.checked;
+        document.getElementById('eventsToggle').checked = showEvents;
+        refreshAfterSettingsChange();
+    }});
+
+    /* ---- View aggregation ---- */
+    let currentView = localStorage.getItem('slack-stats-view') || 'daily';
+
+    function getWeekKey(dateStr) {{
+        let d = new Date(dateStr);
+        let thu = new Date(d);
+        thu.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 3);
+        let jan4 = new Date(thu.getFullYear(), 0, 4);
+        let week = Math.ceil(((thu - jan4) / 86400000 + jan4.getDay() + 1) / 7);
+        return thu.getFullYear() + '-W' + String(week).padStart(2, '0');
+    }}
+
+    function getMonthKey(dateStr) {{ return dateStr.substring(0, 7); }}
+    function getYearKey(dateStr) {{ return dateStr.substring(0, 4); }}
+
+    function aggregateData(view) {{
+        if (view === 'daily') return DATA;
+
+        let keyFn = view === 'weekly' ? getWeekKey : view === 'monthly' ? getMonthKey : getYearKey;
+        let groups = {{}};
+
+        DATA.forEach(function(s) {{
+            let key = keyFn(s.date);
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(s);
+        }});
+
+        let result = [];
+        Object.keys(groups).sort().forEach(function(key) {{
+            let items = groups[key];
+            let merged = {{ date: key }};
+
+            /* For membership/channels: take the last snapshot (point-in-time) */
+            let last = items[items.length - 1];
+            if (last.membership) merged.membership = last.membership;
+            if (last.channels) merged.channels = last.channels;
+
+            /* For activity: average across the period */
+            let activityKeys = ['channel_messages_posted', 'channel_files_shared',
+                'channel_reactions', 'channel_unique_viewers', 'channel_unique_posters',
+                'messages_posted', 'reactions_added'];
+
+            let hasActivity = items.some(function(s) {{ return s.activity; }});
+            if (hasActivity) {{
+                merged.activity = {{ date: key, source: 'public_channel' }};
+                activityKeys.forEach(function(ak) {{
+                    let vals = items.filter(function(s) {{ return s.activity && s.activity[ak] != null; }})
+                                    .map(function(s) {{ return s.activity[ak]; }});
+                    if (vals.length > 0) {{
+                        merged.activity[ak] = Math.round(vals.reduce(function(a, b) {{ return a + b; }}, 0) / vals.length);
+                    }}
+                }});
+            }}
+
+            result.push(merged);
+        }});
+
+        return result;
+    }}
+
+    function setView(view) {{
+        currentView = view;
+        localStorage.setItem('slack-stats-view', view);
+        document.querySelectorAll('.view-selector button').forEach(function(btn) {{
+            btn.classList.toggle('active', btn.dataset.view === view);
+        }});
+        refreshAfterSettingsChange();
+    }}
+
+    /* Initialise view selector state */
+    document.querySelectorAll('.view-selector button').forEach(function(btn) {{
+        btn.classList.toggle('active', btn.dataset.view === currentView);
+        btn.addEventListener('click', function() {{ setView(btn.dataset.view); }});
+    }});
+
     /* ---- Chart setup ---- */
     Chart.defaults.font.family = "'SF Mono', 'Monaco', 'Cascadia Code', 'Consolas', monospace";
     Chart.defaults.font.size = 10;
 
     let chartInstances = {{}};
 
-    function getChartDefaults() {{
+    function getChartDefaults(enableZoom, dates) {{
         let c = getThemeColours();
-        return {{
+        let opts = {{
             responsive: true,
             maintainAspectRatio: false,
             interaction: {{ mode: 'index', intersect: false }},
             plugins: {{
+                annotation: {{
+                    annotations: dates ? getEventAnnotations(dates) : {{}},
+                }},
                 legend: {{
                     labels: {{
                         color: c.text,
                         usePointStyle: true,
                         pointStyle: 'circle',
                         padding: 12,
-                        font: {{ size: 10 }},
+                        font: {{ size: enableZoom ? 12 : 10 }},
                     }},
                 }},
                 tooltip: {{
@@ -690,10 +1076,21 @@ def generate_dashboard(history: dict):
                     borderWidth: 1,
                     titleColor: c.tooltipText,
                     bodyColor: c.tooltipText,
-                    titleFont: {{ size: 10 }},
-                    bodyFont: {{ size: 10 }},
-                    padding: 8,
+                    titleFont: {{ size: enableZoom ? 12 : 10 }},
+                    bodyFont: {{ size: enableZoom ? 12 : 10 }},
+                    padding: enableZoom ? 12 : 8,
+                    footerColor: c.muted,
+                    footerFont: {{ size: enableZoom ? 10 : 9, style: 'italic' }},
                     callbacks: {{
+                        afterTitle: function(tooltipItems) {{
+                            if (!showEvents || !tooltipItems.length || !dates) return '';
+                            let evts = getEventsForIndex(dates, tooltipItems[0].dataIndex);
+                            if (evts.length === 0) return '';
+                            let typeLabels = {{ event: 'EVENT', launch: 'LAUNCH', release: 'RELEASE' }};
+                            return evts.map(function(ev) {{
+                                return (typeLabels[ev.type] || 'EVENT') + ': ' + ev.label;
+                            }}).join('\\n');
+                        }},
                         label: function(context) {{
                             let value = context.parsed.y;
                             if (value === null || value === undefined) return '';
@@ -704,14 +1101,14 @@ def generate_dashboard(history: dict):
             }},
             scales: {{
                 x: {{
-                    ticks: {{ color: c.muted, font: {{ size: 10 }} }},
+                    ticks: {{ color: c.muted, font: {{ size: enableZoom ? 11 : 10 }} }},
                     grid: {{ color: c.grid }},
                     border: {{ color: c.grid }},
                 }},
                 y: {{
                     ticks: {{
                         color: c.muted,
-                        font: {{ size: 10 }},
+                        font: {{ size: enableZoom ? 11 : 10 }},
                         callback: function(value) {{ return value.toLocaleString(); }},
                     }},
                     grid: {{ color: c.grid }},
@@ -720,6 +1117,28 @@ def generate_dashboard(history: dict):
                 }},
             }},
         }};
+
+        if (enableZoom) {{
+            opts.plugins.zoom = {{
+                pan: {{
+                    enabled: true,
+                    mode: 'x',
+                }},
+                zoom: {{
+                    wheel: {{ enabled: true }},
+                    pinch: {{ enabled: true }},
+                    drag: {{
+                        enabled: true,
+                        backgroundColor: 'rgba(88, 166, 255, 0.15)',
+                        borderColor: 'rgba(88, 166, 255, 0.4)',
+                        borderWidth: 1,
+                    }},
+                    mode: 'x',
+                }},
+            }};
+        }}
+
+        return opts;
     }}
 
     function getField(snapshot, path) {{
@@ -732,6 +1151,8 @@ def generate_dashboard(history: dict):
         return val !== undefined ? val : null;
     }}
 
+    let chartDatasets = {{}};
+
     function buildChart(canvasId, labels, datasets) {{
         if (labels.length < 1) {{
             let container = document.getElementById(canvasId).parentElement;
@@ -743,18 +1164,22 @@ def generate_dashboard(history: dict):
             chartInstances[canvasId].destroy();
         }}
 
+        /* Store dataset config for modal re-use */
+        chartDatasets[canvasId] = {{ labels: labels, datasets: datasets }};
+
         let ctx = document.getElementById(canvasId).getContext('2d');
         chartInstances[canvasId] = new Chart(ctx, {{
             type: 'line',
             data: {{ labels: labels, datasets: datasets }},
-            options: getChartDefaults(),
+            options: getChartDefaults(false, labels),
         }});
     }}
 
     function rebuildAllCharts() {{
         /* Small delay so CSS variables resolve after data-theme change */
         requestAnimationFrame(function() {{
-            let dates = DATA.map(s => s.date);
+            let viewData = aggregateData(currentView);
+            let dates = viewData.map(s => s.date);
 
             let eff = getEffectiveTheme(localStorage.getItem('slack-stats-theme') || 'dark');
             let accentBlue = eff === 'light' ? '#0969da' : '#58a6ff';
@@ -769,7 +1194,7 @@ def generate_dashboard(history: dict):
             buildChart('membershipChart', dates, [
                 {{
                     label: 'Active Members',
-                    data: DATA.map(s => getField(s, 'membership.active')),
+                    data: viewData.map(s => getField(s, 'membership.active')),
                     borderColor: accentBlue,
                     backgroundColor: accentBlue + '14',
                     fill: true, tension: 0.3, borderWidth: 1.5,
@@ -777,14 +1202,14 @@ def generate_dashboard(history: dict):
                 }},
                 {{
                     label: 'Total Registered',
-                    data: DATA.map(s => getField(s, 'membership.total_registered')),
+                    data: viewData.map(s => getField(s, 'membership.total_registered')),
                     borderColor: muted, borderDash: [4, 3],
                     tension: 0.3, borderWidth: 1,
                     pointRadius: 2, pointBackgroundColor: muted,
                 }},
                 {{
                     label: 'Deactivated',
-                    data: DATA.map(s => getField(s, 'membership.deactivated')),
+                    data: viewData.map(s => getField(s, 'membership.deactivated')),
                     borderColor: accentRed,
                     tension: 0.3, borderWidth: 1.5,
                     pointRadius: 2, pointBackgroundColor: accentRed,
@@ -794,7 +1219,7 @@ def generate_dashboard(history: dict):
             buildChart('channelsChart', dates, [
                 {{
                     label: 'Active Channels',
-                    data: DATA.map(s => getField(s, 'channels.active_channels')),
+                    data: viewData.map(s => getField(s, 'channels.active_channels')),
                     borderColor: accentGreen,
                     backgroundColor: accentGreen + '14',
                     fill: true, tension: 0.3, borderWidth: 1.5,
@@ -802,7 +1227,7 @@ def generate_dashboard(history: dict):
                 }},
                 {{
                     label: 'Archived Channels',
-                    data: DATA.map(s => getField(s, 'channels.archived_channels')),
+                    data: viewData.map(s => getField(s, 'channels.archived_channels')),
                     borderColor: accentAmber,
                     tension: 0.3, borderWidth: 1.5,
                     pointRadius: 2, pointBackgroundColor: accentAmber,
@@ -812,7 +1237,7 @@ def generate_dashboard(history: dict):
             buildChart('activityChart', dates, [
                 {{
                     label: 'Messages Posted',
-                    data: DATA.map(s => getField(s, 'activity.channel_messages_posted') || getField(s, 'activity.messages_posted')),
+                    data: viewData.map(s => getField(s, 'activity.channel_messages_posted') || getField(s, 'activity.messages_posted')),
                     borderColor: accentSky,
                     backgroundColor: accentSky + '14',
                     fill: true, tension: 0.3, borderWidth: 1.5,
@@ -820,7 +1245,7 @@ def generate_dashboard(history: dict):
                 }},
                 {{
                     label: 'Reactions Added',
-                    data: DATA.map(s => getField(s, 'activity.channel_reactions') || getField(s, 'activity.reactions_added')),
+                    data: viewData.map(s => getField(s, 'activity.channel_reactions') || getField(s, 'activity.reactions_added')),
                     borderColor: accentAmber,
                     tension: 0.3, borderWidth: 1.5,
                     pointRadius: 2, pointBackgroundColor: accentAmber,
@@ -830,7 +1255,7 @@ def generate_dashboard(history: dict):
             buildChart('engagementChart', dates, [
                 {{
                     label: 'Unique Viewers',
-                    data: DATA.map(s => getField(s, 'activity.channel_unique_viewers')),
+                    data: viewData.map(s => getField(s, 'activity.channel_unique_viewers')),
                     borderColor: accentPurple,
                     backgroundColor: accentPurple + '14',
                     fill: true, tension: 0.3, borderWidth: 1.5,
@@ -838,7 +1263,7 @@ def generate_dashboard(history: dict):
                 }},
                 {{
                     label: 'Unique Posters',
-                    data: DATA.map(s => getField(s, 'activity.channel_unique_posters')),
+                    data: viewData.map(s => getField(s, 'activity.channel_unique_posters')),
                     borderColor: accentTeal,
                     tension: 0.3, borderWidth: 1.5,
                     pointRadius: 2, pointBackgroundColor: accentTeal,
@@ -971,6 +1396,76 @@ def generate_dashboard(history: dict):
     }}
     document.getElementById('compareFrom').addEventListener('change', renderComparison);
     document.getElementById('compareTo').addEventListener('change', renderComparison);
+
+    /* ---- Chart modal (expand) ---- */
+    let modalChart = null;
+    let currentModalChartId = null;
+    let currentModalTitle = null;
+
+    function openModal(chartId, title) {{
+        currentModalChartId = chartId;
+        currentModalTitle = title;
+        document.getElementById('modalEventsToggle').checked = showEvents;
+        let modal = document.getElementById('chartModal');
+        let stored = chartDatasets[chartId];
+        if (!stored) return;
+
+        document.getElementById('modalTitle').textContent = title;
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        /* Deep-clone datasets so modal doesn't share state with grid charts */
+        let clonedDatasets = stored.datasets.map(function(ds) {{
+            let clone = {{}};
+            for (let k in ds) clone[k] = ds[k];
+            /* Larger points in expanded view */
+            clone.pointRadius = (ds.pointRadius || 3) + 1;
+            clone.borderWidth = (ds.borderWidth || 1.5) + 0.5;
+            return clone;
+        }});
+
+        requestAnimationFrame(function() {{
+            if (modalChart) {{
+                modalChart.destroy();
+                modalChart = null;
+            }}
+            let ctx = document.getElementById('modalChart').getContext('2d');
+            modalChart = new Chart(ctx, {{
+                type: 'line',
+                data: {{ labels: stored.labels.slice(), datasets: clonedDatasets }},
+                options: getChartDefaults(true, stored.labels),
+            }});
+        }});
+    }}
+
+    function closeModal() {{
+        let modal = document.getElementById('chartModal');
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+        currentModalChartId = null;
+        currentModalTitle = null;
+        if (modalChart) {{
+            modalChart.destroy();
+            modalChart = null;
+        }}
+    }}
+
+    document.querySelectorAll('.expand-btn').forEach(function(btn) {{
+        btn.addEventListener('click', function() {{
+            openModal(btn.dataset.chart, btn.dataset.title);
+        }});
+    }});
+
+    document.getElementById('modalReset').addEventListener('click', function() {{
+        if (modalChart) modalChart.resetZoom();
+    }});
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('chartModal').addEventListener('click', function(e) {{
+        if (e.target === this) closeModal();
+    }});
+    document.addEventListener('keydown', function(e) {{
+        if (e.key === 'Escape') closeModal();
+    }});
     </script>
 </body>
 </html>"""
