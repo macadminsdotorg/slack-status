@@ -601,7 +601,7 @@ def generate_dashboard(history: dict):
         </div>
 
         <footer>
-            Data collected weekly via GitHub Actions -- sourced from the Slack API
+            Data collected daily via GitHub Actions via the Slack API
         </footer>
     </div>
 
