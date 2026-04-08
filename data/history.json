@@ -6501,6 +6501,27 @@
         "messages_posted": 171,
         "reactions_added": 114
       }
+    },
+    {
+      "date": "2026-04-08",
+      "generated": "2026-04-08T11:13:02.493846",
+      "membership": {
+        "total_registered": 84702,
+        "active": 83504,
+        "deactivated": 1198,
+        "full_members": 83499,
+        "guests_multi_channel": 4,
+        "guests_single_channel": 1,
+        "admins": 13,
+        "owners": 1,
+        "primary_owner": 1,
+        "bots": 124
+      },
+      "channels": {
+        "total_channels": 2216,
+        "active_channels": 1427,
+        "archived_channels": 789
+      }
     }
   ]
 }
