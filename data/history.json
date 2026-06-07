@@ -8436,6 +8436,39 @@
         "messages_posted": 2272,
         "reactions_added": 1120
       }
+    },
+    {
+      "date": "2026-06-07",
+      "generated": "2026-06-07T12:02:49.876285",
+      "membership": {
+        "total_registered": 85873,
+        "active": 84652,
+        "deactivated": 1221,
+        "full_members": 84647,
+        "guests_multi_channel": 4,
+        "guests_single_channel": 1,
+        "admins": 13,
+        "owners": 1,
+        "primary_owner": 1,
+        "bots": 124
+      },
+      "channels": {
+        "total_channels": 2238,
+        "active_channels": 1443,
+        "archived_channels": 795
+      },
+      "activity": {
+        "date": "2026-06-05",
+        "channels_in_analytics": 1443,
+        "channel_messages_posted": 1716,
+        "channel_files_shared": 0,
+        "channel_reactions": 807,
+        "channel_unique_viewers": 12619,
+        "channel_unique_posters": 649,
+        "source": "public_channel",
+        "messages_posted": 1716,
+        "reactions_added": 807
+      }
     }
   ]
 }
