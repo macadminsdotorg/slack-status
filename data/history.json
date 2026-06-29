@@ -9129,6 +9129,39 @@
         "messages_posted": 1645,
         "reactions_added": 902
       }
+    },
+    {
+      "date": "2026-06-29",
+      "generated": "2026-06-29T14:18:13.261789",
+      "membership": {
+        "total_registered": 86263,
+        "active": 85029,
+        "deactivated": 1234,
+        "full_members": 85024,
+        "guests_multi_channel": 4,
+        "guests_single_channel": 1,
+        "admins": 13,
+        "owners": 1,
+        "primary_owner": 1,
+        "bots": 124
+      },
+      "channels": {
+        "total_channels": 2243,
+        "active_channels": 1446,
+        "archived_channels": 797
+      },
+      "activity": {
+        "date": "2026-06-27",
+        "channels_in_analytics": 1446,
+        "channel_messages_posted": 378,
+        "channel_files_shared": 0,
+        "channel_reactions": 356,
+        "channel_unique_viewers": 3639,
+        "channel_unique_posters": 152,
+        "source": "public_channel",
+        "messages_posted": 378,
+        "reactions_added": 356
+      }
     }
   ]
 }
