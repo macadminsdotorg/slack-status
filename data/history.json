@@ -12561,6 +12561,27 @@
         "messages_posted": 1821,
         "reactions_added": 1422
       }
+    },
+    {
+      "date": "2026-10-12",
+      "generated": "2026-10-12T19:55:58.130277",
+      "membership": {
+        "total_registered": 88242,
+        "active": 83940,
+        "deactivated": 4302,
+        "full_members": 83936,
+        "guests_multi_channel": 3,
+        "guests_single_channel": 1,
+        "admins": 28,
+        "owners": 6,
+        "primary_owner": 1,
+        "bots": 133
+      },
+      "channels": {
+        "total_channels": 2279,
+        "active_channels": 1481,
+        "archived_channels": 798
+      }
     }
   ]
 }
