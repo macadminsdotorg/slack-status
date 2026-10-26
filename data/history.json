@@ -12855,6 +12855,27 @@
         "active_channels": 1486,
         "archived_channels": 798
       }
+    },
+    {
+      "date": "2026-10-26",
+      "generated": "2026-10-26T16:46:39.544729",
+      "membership": {
+        "total_registered": 88552,
+        "active": 84235,
+        "deactivated": 4317,
+        "full_members": 84231,
+        "guests_multi_channel": 3,
+        "guests_single_channel": 1,
+        "admins": 28,
+        "owners": 6,
+        "primary_owner": 1,
+        "bots": 136
+      },
+      "channels": {
+        "total_channels": 2285,
+        "active_channels": 1487,
+        "archived_channels": 798
+      }
     }
   ]
 }
